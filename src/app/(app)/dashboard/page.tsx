@@ -2,11 +2,13 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { currentUser, appointments, users } from "@/lib/data";
-import { Clock, Stethoscope, Users } from "lucide-react";
-import type { ChartConfig } from "@/components/ui/chart";
+import { currentUser } from "@/lib/data";
+import { Clock, Stethoscope, Users, Loader2 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from "recharts";
+import { useEffect, useState } from "react";
+import { db } from "@/lib/firebase";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import type { Appointment, User } from "@/lib/types";
 
 const chartData = [
   { month: "January", desktop: 186 },
@@ -17,22 +19,56 @@ const chartData = [
   { month: "June", desktop: 214 },
 ];
 
-const chartConfig = {
-  desktop: {
-    label: "Patients",
-    color: "hsl(var(--primary))",
-  },
-} satisfies ChartConfig;
-
 export default function DashboardPage() {
-  const patientCount = users.filter(u => u.role === 'Patient').length;
-  const employeeCount = users.filter(u => u.role !== 'Patient').length;
-  const scheduledAppointments = appointments.filter(a => a.status === 'Scheduled').length;
+  const [patientCount, setPatientCount] = useState(0);
+  const [employeeCount, setEmployeeCount] = useState(0);
+  const [scheduledAppointments, setScheduledAppointments] = useState<Appointment[]>([]);
+  const [recentAppointments, setRecentAppointments] = useState<Appointment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+        setIsLoading(true);
+        try {
+            // Fetch users
+            const usersCollection = collection(db, 'users');
+            const usersSnapshot = await getDocs(usersCollection);
+            const allUsers = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as User[];
+            setPatientCount(allUsers.filter(u => u.role === 'Patient').length);
+            setEmployeeCount(allUsers.filter(u => u.role !== 'Patient').length);
+
+            // Fetch appointments
+            const appointmentsCollection = collection(db, 'appointments');
+            const appointmentsQuery = query(appointmentsCollection, where('status', '==', 'Scheduled'));
+            const appointmentsSnapshot = await getDocs(appointmentsQuery);
+            const allAppointments = appointmentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Appointment[];
+            setScheduledAppointments(allAppointments);
+            
+            const sortedAppointments = [...allAppointments].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            setRecentAppointments(sortedAppointments.slice(0, 4));
+
+        } catch (error) {
+            console.error("Error fetching dashboard data:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    fetchData();
+  }, []);
+
+  if (isLoading) {
+      return (
+          <div className="flex justify-center items-center h-full">
+              <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+      );
+  }
 
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-3xl font-bold font-headline">Welcome, {currentUser.name}!</h1>
+        <h1 className="text-3xl font-bold font-headline">Welcome, {currentUser?.name}!</h1>
         <p className="text-muted-foreground">Here's a summary of the hospital's activity.</p>
       </header>
 
@@ -63,7 +99,7 @@ export default function DashboardPage() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+{scheduledAppointments}</div>
+            <div className="text-2xl font-bold">+{scheduledAppointments.length}</div>
             <p className="text-xs text-muted-foreground">+5 this week</p>
           </CardContent>
         </Card>
@@ -90,7 +126,7 @@ export default function DashboardPage() {
                       cursor={{ fill: "hsl(var(--muted))" }}
                       contentStyle={{ backgroundColor: "hsl(var(--background))", border: "1px solid hsl(var(--border))" }}
                     />
-                    <Bar dataKey="desktop" fill={chartConfig.desktop.color} radius={4} />
+                    <Bar dataKey="desktop" fill="hsl(var(--primary))" radius={4} />
                 </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -110,7 +146,7 @@ export default function DashboardPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {appointments.slice(0, 4).map((appointment) => (
+                {recentAppointments.map((appointment) => (
                   <TableRow key={appointment.id}>
                     <TableCell>
                       <div className="font-medium">{appointment.patientName}</div>

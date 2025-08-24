@@ -25,10 +25,13 @@ import {
   CalendarClock,
   Users,
 } from 'lucide-react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { currentUser } from '@/lib/data';
+import { currentUser, setCurrentUser } from '@/lib/data';
 import { Button } from '@/components/ui/button';
+import { useEffect, useState } from 'react';
+import type { User } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['Patient', 'Doctor', 'Nurse', 'Admin'] },
@@ -40,7 +43,39 @@ const navItems = [
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const userRole = currentUser.role;
+  const router = useRouter();
+  const [user, setUser] = useState<User | null>(currentUser);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!currentUser) {
+      router.push('/');
+    } else {
+      setUser(currentUser);
+      setIsLoading(false);
+    }
+  }, [router]);
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    router.push('/');
+  };
+
+  if (isLoading) {
+    return (
+        <div className="flex min-h-screen items-center justify-center">
+            <div className="flex items-center space-x-4">
+                <Skeleton className="h-12 w-12 rounded-full" />
+                <div className="space-y-2">
+                    <Skeleton className="h-4 w-[250px]" />
+                    <Skeleton className="h-4 w-[200px]" />
+                </div>
+            </div>
+        </div>
+    );
+  }
+  
+  const userRole = user?.role;
 
   return (
     <SidebarProvider>
@@ -55,7 +90,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
-            {navItems.filter(item => item.roles.includes(userRole)).map((item) => (
+            {navItems.filter(item => userRole && item.roles.includes(userRole)).map((item) => (
               <SidebarMenuItem key={item.href}>
                 <Link href={item.href} className="w-full">
                   <SidebarMenuButton
@@ -71,21 +106,21 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
-            <div className="flex items-center gap-3 rounded-md p-2 bg-muted">
-                <Avatar className="h-10 w-10 border-2 border-primary/50">
-                    <AvatarImage src={currentUser.avatarUrl} alt={currentUser.name} />
-                    <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <div className="flex-1 overflow-hidden">
-                    <p className="font-semibold truncate">{currentUser.name}</p>
-                    <p className="text-xs text-muted-foreground truncate">{currentUser.role}</p>
-                </div>
-                <Link href="/" title="Logout">
-                    <Button variant="ghost" size="icon">
+            {user && (
+                <div className="flex items-center gap-3 rounded-md p-2 bg-muted">
+                    <Avatar className="h-10 w-10 border-2 border-primary/50">
+                        <AvatarImage src={user.avatarUrl} alt={user.name} />
+                        <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 overflow-hidden">
+                        <p className="font-semibold truncate">{user.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{user.role}</p>
+                    </div>
+                    <Button variant="ghost" size="icon" title="Logout" onClick={handleLogout}>
                         <LogOut className="h-5 w-5 text-muted-foreground hover:text-destructive" />
                     </Button>
-                </Link>
-            </div>
+                </div>
+            )}
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
@@ -94,10 +129,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <div className="flex-1">
                 {/* Could add breadcrumbs or page title here */}
             </div>
-             <Avatar>
-                <AvatarImage src={currentUser.avatarUrl} alt={currentUser.name} />
-                <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>
-            </Avatar>
+             {user && (
+                <Avatar>
+                    <AvatarImage src={user.avatarUrl} alt={user.name} />
+                    <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                </Avatar>
+             )}
         </header>
         <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-secondary/50">
             {children}
