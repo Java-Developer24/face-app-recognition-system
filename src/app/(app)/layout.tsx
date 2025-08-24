@@ -28,6 +28,7 @@ import {
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { currentUser } from '@/lib/data';
+import { Button } from '@/components/ui/button';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['Patient', 'Doctor', 'Nurse', 'Admin'] },
