@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -15,17 +14,9 @@ import { AlertCircle, HeartPulse, Video, Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from '@/hooks/use-toast';
-import { users, medicalRecords } from '@/lib/data';
+import { findUserByFace, getMedicalRecords } from '@/lib/data';
 import type { User, MedicalRecord } from '@/lib/types';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-
-// A simple similarity function for demo purposes.
-const areFacesSimilar = (embedding1: string, embedding2: string) => {
-    if (embedding1 && embedding2) {
-      return embedding1.substring(0, 100) === embedding2.substring(0, 100);
-    }
-    return false;
-};
 
 
 export default function EmergencyPage() {
@@ -77,12 +68,11 @@ export default function EmergencyPage() {
         const capturedEmbedding = canvas.toDataURL('image/png');
 
         try {
-            const patientUsers = users.filter(u => u.role === 'Patient');
-            const foundUser = patientUsers.find(u => areFacesSimilar(capturedEmbedding, u.faceEmbedding)) || null;
+            const foundUser = await findUserByFace(capturedEmbedding);
 
-            if (foundUser) {
+            if (foundUser && foundUser.role === 'Patient') {
                 setPatient(foundUser);
-                const patientRecords = medicalRecords.filter(r => r.patientId === foundUser.id);
+                const patientRecords = await getMedicalRecords(foundUser.id);
                 setRecords(patientRecords);
                 setIsDialogOpen(true);
             } else {

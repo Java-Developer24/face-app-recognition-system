@@ -1,4 +1,3 @@
-// src/app/register/page.tsx
 'use client';
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -74,7 +73,7 @@ export default function RegisterPage() {
     }
     setIsSubmitting(true);
     try {
-      addUser({
+      await addUser({
         name,
         email,
         age: Number(age),

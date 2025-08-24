@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { currentUser, setCurrentUser } from '@/lib/data';
+import { getCurrentUser, setCurrentUser } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
 import type { User } from '@/lib/types';
@@ -48,13 +48,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Because data is now local, we can just read it.
     // A slight delay is simulated to show loading state.
     setTimeout(() => {
-        if (!currentUser) {
+        const loggedInUser = getCurrentUser();
+        if (!loggedInUser) {
             router.push('/');
         } else {
-            setUser(currentUser);
+            setUser(loggedInUser);
         }
         setIsLoading(false);
     }, 500)

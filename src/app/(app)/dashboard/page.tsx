@@ -2,11 +2,11 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { currentUser, users, appointments } from "@/lib/data";
+import { getCurrentUser, getAllUsers, getAppointments } from "@/lib/data";
 import { Clock, Stethoscope, Users, Loader2 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from "recharts";
 import { useEffect, useState } from "react";
-import type { Appointment as AppointmentType, User } from "@/lib/types";
+import type { Appointment, User } from "@/lib/types";
 
 const chartData = [
   { month: "January", desktop: 186 },
@@ -20,28 +20,32 @@ const chartData = [
 export default function DashboardPage() {
   const [patientCount, setPatientCount] = useState(0);
   const [employeeCount, setEmployeeCount] = useState(0);
-  const [scheduledAppointments, setScheduledAppointments] = useState<AppointmentType[]>([]);
-  const [recentAppointments, setRecentAppointments] = useState<AppointmentType[]>([]);
+  const [scheduledAppointments, setScheduledAppointments] = useState<Appointment[]>([]);
+  const [recentAppointments, setRecentAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const currentUser = getCurrentUser();
 
   useEffect(() => {
+    const fetchData = async () => {
       setIsLoading(true);
       try {
-          const allUsers = users;
-          setPatientCount(allUsers.filter(u => u.role === 'Patient').length);
-          setEmployeeCount(allUsers.filter(u => u.role !== 'Patient').length);
+        const allUsers = await getAllUsers();
+        setPatientCount(allUsers.filter(u => u.role === 'Patient').length);
+        setEmployeeCount(allUsers.filter(u => u.role !== 'Patient').length);
 
-          const allAppointments = appointments.filter(a => a.status === 'Scheduled');
-          setScheduledAppointments(allAppointments);
-          
-          const sortedAppointments = [...allAppointments].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-          setRecentAppointments(sortedAppointments.slice(0, 4));
+        const allAppointments = (await getAppointments()).filter(a => a.status === 'Scheduled');
+        setScheduledAppointments(allAppointments);
+        
+        const sortedAppointments = [...allAppointments].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        setRecentAppointments(sortedAppointments.slice(0, 4));
 
       } catch (error) {
-          console.error("Error fetching dashboard data:", error);
+        console.error("Error fetching dashboard data:", error);
       } finally {
-          setIsLoading(false);
+        setIsLoading(false);
       }
+    };
+    fetchData();
   }, []);
 
   if (isLoading) {

@@ -1,7 +1,7 @@
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { schedules, currentUser } from "@/lib/data";
+import { getSchedulesForEmployee, getCurrentUser } from "@/lib/data";
 import { Badge } from "@/components/ui/badge";
 import { CalendarDays, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -9,18 +9,26 @@ import type { Schedule, User } from "@/lib/types";
 
 export default function SchedulePage() {
   const [user, setUser] = useState<User | null>(null);
+  const [mySchedule, setMySchedule] = useState<Schedule[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // In a real app, you might have a more robust way to get the current user.
-    // Here we simulate fetching it.
-    if (currentUser) {
+    const loadUserData = async () => {
+      setIsLoading(true);
+      const currentUser = getCurrentUser();
+      if (currentUser) {
         setUser(currentUser);
-    }
-    setIsLoading(false);
+        try {
+          const schedules = await getSchedulesForEmployee(currentUser.id);
+          setMySchedule(schedules);
+        } catch (error) {
+          console.error("Failed to fetch schedule:", error);
+        }
+      }
+      setIsLoading(false);
+    };
+    loadUserData();
   }, []);
-  
-  const mySchedule = user ? schedules.filter(s => s.employeeId === user.id) : [];
 
   if (isLoading) {
     return (

@@ -6,18 +6,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { setCurrentUser, users } from '@/lib/data';
+import { setCurrentUser, findUserByFace } from '@/lib/data';
 
-// A simple similarity function for demo purposes.
-// In a real app, this would be a sophisticated face recognition model.
-const areFacesSimilar = (embedding1: string, embedding2: string) => {
-    // This is a placeholder. A real implementation would compare embeddings.
-    if (embedding1 && embedding2) {
-      // This is still not a real similarity check.
-      return embedding1.substring(0, 100) === embedding2.substring(0, 100);
-    }
-    return false;
-};
 
 export default function LoginPage() {
   const router = useRouter();
@@ -66,7 +56,7 @@ export default function LoginPage() {
     const capturedEmbedding = canvas.toDataURL('image/png');
 
     try {
-      const foundUser = users.find(user => areFacesSimilar(capturedEmbedding, user.faceEmbedding));
+      const foundUser = await findUserByFace(capturedEmbedding);
 
       if (foundUser) {
         setCurrentUser(foundUser);
