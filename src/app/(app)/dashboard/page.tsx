@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { currentUser, appointments, users } from "@/lib/data";
 import { Clock, Stethoscope, Users } from "lucide-react";
-import { ChartTooltip, ChartTooltipContent, ChartConfig } from "@/components/ui/chart";
+import type { ChartConfig } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from "recharts";
 
 const chartData = [
@@ -86,7 +86,10 @@ export default function DashboardPage() {
                         tickFormatter={(value) => value.slice(0, 3)}
                     />
                     <YAxis />
-                    <Tooltip content={<ChartTooltipContent />} />
+                    <Tooltip
+                      cursor={{ fill: "hsl(var(--muted))" }}
+                      contentStyle={{ backgroundColor: "hsl(var(--background))", border: "1px solid hsl(var(--border))" }}
+                    />
                     <Bar dataKey="desktop" fill={chartConfig.desktop.color} radius={4} />
                 </BarChart>
             </ResponsiveContainer>
