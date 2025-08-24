@@ -4,9 +4,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { currentUser, appointments, users } from "@/lib/data";
-import { BarChart, Clock, Stethoscope, User, Users } from "lucide-react";
-import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartConfig } from "@/components/ui/chart";
-import { Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
+import { Clock, Stethoscope, Users } from "lucide-react";
+import { ChartTooltip, ChartTooltipContent, ChartConfig } from "@/components/ui/chart";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from "recharts";
 
 const chartData = [
   { month: "January", desktop: 186 },
@@ -75,23 +75,21 @@ export default function DashboardPage() {
             <CardTitle>Patient Visits Overview</CardTitle>
           </CardHeader>
           <CardContent className="pl-2">
-            <ChartContainer config={chartConfig} className="h-[300px] w-full">
-                <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={chartData}>
-                        <CartesianGrid vertical={false} />
-                        <XAxis
-                            dataKey="month"
-                            tickLine={false}
-                            tickMargin={10}
-                            axisLine={false}
-                            tickFormatter={(value) => value.slice(0, 3)}
-                        />
-                        <YAxis />
-                        <ChartTooltip content={<ChartTooltipContent />} />
-                        <Bar dataKey="desktop" fill="var(--color-desktop)" radius={4} />
-                    </BarChart>
-                </ResponsiveContainer>
-            </ChartContainer>
+            <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={chartData}>
+                    <CartesianGrid vertical={false} />
+                    <XAxis
+                        dataKey="month"
+                        tickLine={false}
+                        tickMargin={10}
+                        axisLine={false}
+                        tickFormatter={(value) => value.slice(0, 3)}
+                    />
+                    <YAxis />
+                    <Tooltip content={<ChartTooltipContent />} />
+                    <Bar dataKey="desktop" fill={chartConfig.desktop.color} radius={4} />
+                </BarChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
         <Card className="col-span-4 lg:col-span-3">
