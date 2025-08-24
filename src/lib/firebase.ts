@@ -4,12 +4,13 @@ import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  "projectId": "facecheck-hospital",
+  "appId": "1:523308899429:web:9742a83fb77f1b5a443a8c",
+  "storageBucket": "facecheck-hospital.firebasestorage.app",
+  "apiKey": "AIzaSyBjr31FHyzWkStO-rl7dLUe7jAPOMMFSys",
+  "authDomain": "facecheck-hospital.firebaseapp.com",
+  "measurementId": "",
+  "messagingSenderId": "523308899429"
 };
 
 // Initialize Firebase

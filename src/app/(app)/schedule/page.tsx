@@ -1,10 +1,42 @@
+'use client';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { schedules, currentUser } from "@/lib/data";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import type { Schedule, User } from "@/lib/types";
 
 export default function SchedulePage() {
-  const mySchedule = schedules.filter(s => s.employeeId === currentUser.id);
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // In a real app, you might have a more robust way to get the current user.
+    // Here we simulate fetching it.
+    if (currentUser) {
+        setUser(currentUser);
+    }
+    setIsLoading(false);
+  }, []);
+  
+  const mySchedule = user ? schedules.filter(s => s.employeeId === user.id) : [];
+
+  if (isLoading) {
+    return (
+        <div className="flex justify-center items-center h-full">
+            <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+    );
+  }
+
+  if (!user) {
+      return (
+          <div className="flex justify-center items-center h-full">
+              <p>Please log in to see your schedule.</p>
+          </div>
+      );
+  }
 
   return (
     <div className="space-y-6">
@@ -31,7 +63,7 @@ export default function SchedulePage() {
                     <p className="font-semibold">{new Date(schedule.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
                     <p className="text-sm text-muted-foreground">{schedule.shift}</p>
                   </div>
-                  <Badge variant="secondary">{currentUser.name}</Badge>
+                  <Badge variant="secondary">{user.name}</Badge>
                 </div>
               )) : (
                 <p className="text-muted-foreground text-center py-8">No shifts assigned for this period.</p>
