@@ -1,3 +1,7 @@
+
+'use client';
+
+import { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -5,17 +9,117 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle, HeartPulse, Video } from "lucide-react";
-import { medicalRecords, users } from "@/lib/data";
+import { AlertCircle, HeartPulse, Video, Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { useToast } from '@/hooks/use-toast';
+import { db } from '@/lib/firebase';
+import { collection, getDocs, query, where } from "firebase/firestore";
+import type { User, MedicalRecord } from '@/lib/types';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+
+// A simple similarity function for demo purposes.
+const areFacesSimilar = (embedding1: string, embedding2: string) => {
+    if (embedding1 && embedding2) {
+      return embedding1.substring(0, 100) === embedding2.substring(0, 100);
+    }
+    return false;
+};
+
 
 export default function EmergencyPage() {
-    const emergencyPatient = users.find(u => u.id === 'P001')!;
-    const patientRecords = medicalRecords.filter(r => r.patientId === 'P001');
+    const { toast } = useToast();
+    const [isScanning, setIsScanning] = useState(false);
+    const [hasCameraPermission, setHasCameraPermission] = useState(false);
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const [patient, setPatient] = useState<User | null>(null);
+    const [records, setRecords] = useState<MedicalRecord[]>([]);
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+    useEffect(() => {
+        const getCameraPermission = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            setHasCameraPermission(true);
+            if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+            }
+        } catch (error) {
+            console.error('Error accessing camera:', error);
+            setHasCameraPermission(false);
+        }
+        };
+        getCameraPermission();
+    }, []);
+
+    const handleScan = async () => {
+        setIsScanning(true);
+        if (!videoRef.current || !hasCameraPermission) {
+            toast({
+                variant: 'destructive',
+                title: 'Camera not available',
+                description: 'Please enable camera access to scan.',
+            });
+            setIsScanning(false);
+            return;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = videoRef.current.videoWidth;
+        canvas.height = videoRef.current.videoHeight;
+        const context = canvas.getContext('2d');
+        if (!context) {
+            setIsScanning(false);
+            return;
+        }
+        context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+        const capturedEmbedding = canvas.toDataURL('image/png');
+
+        try {
+            const usersCollection = collection(db, 'users');
+            const q = query(usersCollection, where("role", "==", "Patient"));
+            const querySnapshot = await getDocs(q);
+            
+            let foundUser: User | null = null;
+            
+            for (const doc of querySnapshot.docs) {
+                const userData = doc.data() as Omit<User, 'id'>;
+                if (areFacesSimilar(capturedEmbedding, userData.faceEmbedding)) {
+                    foundUser = { id: doc.id, ...userData };
+                    break;
+                }
+            }
+
+            if (foundUser) {
+                setPatient(foundUser);
+                // In a real app, you would fetch medical records for the found user.
+                // For now, we'll use the hardcoded records if they exist, or an empty array.
+                const recordsCollection = collection(db, 'medicalRecords');
+                const recordsQuery = query(recordsCollection, where('patientId', '==', foundUser.id));
+                const recordsSnapshot = await getDocs(recordsQuery);
+                const patientRecords = recordsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as MedicalRecord[];
+                setRecords(patientRecords);
+                setIsDialogOpen(true);
+            } else {
+                toast({
+                variant: 'destructive',
+                title: 'Patient Not Found',
+                description: 'No matching patient record found in the system.',
+                });
+            }
+        } catch (error) {
+            console.error('Scan error:', error);
+            toast({
+                variant: 'destructive',
+                title: 'Scan Error',
+                description: 'An error occurred during the scan. Please try again.',
+            });
+        } finally {
+            setIsScanning(false);
+        }
+    };
 
   return (
     <div className="space-y-6">
@@ -35,48 +139,67 @@ export default function EmergencyPage() {
             <CardDescription>Position the patient's face in the camera view to retrieve their records.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-            <div className="relative aspect-video w-full overflow-hidden rounded-lg border-2 border-dashed border-destructive bg-muted">
-                <div className="flex h-full w-full flex-col items-center justify-center text-muted-foreground">
-                <Video className="h-16 w-16" />
-                <p className="mt-2 text-sm">Webcam feed</p>
-                </div>
+             <div className="relative aspect-video w-full overflow-hidden rounded-lg border-2 border-dashed border-destructive bg-muted">
+                <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
+                { !hasCameraPermission && (
+                  <div className="absolute inset-0 flex h-full w-full flex-col items-center justify-center text-muted-foreground bg-background/80">
+                      <Video className="h-16 w-16" />
+                      <p className="mt-2 text-sm">Webcam feed inactive</p>
+                  </div>
+                )}
             </div>
-            <Dialog>
-                <DialogTrigger asChild>
-                    <Button className="w-full" variant="destructive">
-                        <HeartPulse className="mr-2 h-4 w-4" />
-                        Scan Patient & View Records
-                    </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-md">
+             { !hasCameraPermission && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Camera Access Required</AlertTitle>
+                <AlertDescription>
+                  Please allow camera access to use this feature.
+                </AlertDescription>
+              </Alert>
+            )}
+            <Button className="w-full" variant="destructive" onClick={handleScan} disabled={isScanning || !hasCameraPermission}>
+                {isScanning ? <Loader2 className="animate-spin" /> : <HeartPulse className="mr-2 h-4 w-4" />}
+                {isScanning ? 'Scanning...' : 'Scan Patient & View Records'}
+            </Button>
+        </CardContent>
+      </Card>
+
+       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogContent className="sm:max-w-md">
+                {patient && (
+                    <>
                     <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <Avatar>
-                            <AvatarImage src={emergencyPatient.avatarUrl} />
-                            <AvatarFallback>{emergencyPatient.name.charAt(0)}</AvatarFallback>
+                            <AvatarImage src={patient.avatarUrl} alt={patient.name} />
+                            <AvatarFallback>{patient.name.charAt(0)}</AvatarFallback>
                         </Avatar>
-                        {emergencyPatient.name}
+                        {patient.name}
                     </DialogTitle>
                     <DialogDescription>
-                        Age: {emergencyPatient.age} | Gender: {emergencyPatient.gender}
+                        Age: {patient.age} | Gender: {patient.gender}
                     </DialogDescription>
                     </DialogHeader>
                     <Separator />
-                    <div className="space-y-4 py-4">
+                    <div className="space-y-4 py-4 max-h-[50vh] overflow-y-auto">
                         <h4 className="font-semibold">Medical History</h4>
-                        {patientRecords.map(record => (
+                        {records.length > 0 ? records.map(record => (
                             <div key={record.id} className="text-sm p-3 border rounded-lg">
-                                <p><strong>Date:</strong> {record.date}</p>
+                                <p><strong>Date:</strong> {new Date(record.date).toLocaleDateString()}</p>
                                 <p><strong>Diagnosis:</strong> {record.diagnosis}</p>
                                 <p><strong>Prescription:</strong> {record.prescription}</p>
                                 <p><strong>Notes:</strong> {record.notes}</p>
                             </div>
-                        ))}
+                        )) : (
+                            <p className="text-sm text-muted-foreground">No medical records found for this patient.</p>
+                        )}
                     </div>
-                </DialogContent>
-            </Dialog>
-        </CardContent>
-      </Card>
+                    </>
+                )}
+            </DialogContent>
+        </Dialog>
     </div>
   );
 }
+
+    
