@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase';
 import { collection, addDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -37,16 +38,11 @@ export default function RegisterPage() {
       } catch (error) {
         console.error('Error accessing camera:', error);
         setHasCameraPermission(false);
-        toast({
-          variant: 'destructive',
-          title: 'Camera Access Denied',
-          description: 'Please enable camera permissions in your browser settings to use this feature.',
-        });
       }
     };
 
     getCameraPermission();
-  }, [toast]);
+  }, []);
   
   const captureFaceEmbedding = () => {
     if (videoRef.current) {
@@ -163,15 +159,23 @@ export default function RegisterPage() {
             <div className="space-y-2">
               <Label>Face Scan</Label>
               <div className="relative aspect-video w-full overflow-hidden rounded-lg border-2 border-dashed bg-muted">
-                 {hasCameraPermission ? (
-                    <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
-                 ) : (
-                    <div className="flex h-full w-full flex-col items-center justify-center text-muted-foreground">
+                 <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
+                 { !hasCameraPermission && (
+                    <div className="absolute inset-0 flex h-full w-full flex-col items-center justify-center text-muted-foreground bg-background/80">
                         <Video className="h-16 w-16" />
                         <p className="mt-2 text-sm">Enable camera access</p>
                     </div>
                  )}
               </div>
+              { !hasCameraPermission && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Camera Access Required</AlertTitle>
+                  <AlertDescription>
+                    Please enable camera permissions in your browser settings to use this feature.
+                  </AlertDescription>
+                </Alert>
+              )}
                <Button type="button" variant="outline" className="w-full" onClick={captureFaceEmbedding} disabled={!hasCameraPermission}>
                 {faceEmbedding ? <CheckCircle className="mr-2" /> : <Video className="mr-2" />}
                 {faceEmbedding ? 'Face Scanned' : 'Scan Face'}

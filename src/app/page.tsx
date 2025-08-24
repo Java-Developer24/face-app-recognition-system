@@ -123,10 +123,9 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="relative aspect-video w-full overflow-hidden rounded-lg border-2 border-dashed bg-muted">
-            {hasCameraPermission ? (
-                <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
-            ) : (
-                <div className="flex h-full w-full flex-col items-center justify-center text-muted-foreground">
+            <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
+            { !hasCameraPermission && (
+                <div className="absolute inset-0 flex h-full w-full flex-col items-center justify-center text-muted-foreground bg-background/80">
                 <Video className="h-16 w-16" />
                 <p className="mt-2 text-sm">Webcam feed inactive</p>
                 </div>
