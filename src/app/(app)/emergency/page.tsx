@@ -15,8 +15,7 @@ import { AlertCircle, HeartPulse, Video, Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from '@/hooks/use-toast';
-import { db } from '@/lib/firebase';
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { users, medicalRecords } from '@/lib/data';
 import type { User, MedicalRecord } from '@/lib/types';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
@@ -78,28 +77,12 @@ export default function EmergencyPage() {
         const capturedEmbedding = canvas.toDataURL('image/png');
 
         try {
-            const usersCollection = collection(db, 'users');
-            const q = query(usersCollection, where("role", "==", "Patient"));
-            const querySnapshot = await getDocs(q);
-            
-            let foundUser: User | null = null;
-            
-            for (const doc of querySnapshot.docs) {
-                const userData = doc.data() as Omit<User, 'id'>;
-                if (areFacesSimilar(capturedEmbedding, userData.faceEmbedding)) {
-                    foundUser = { id: doc.id, ...userData };
-                    break;
-                }
-            }
+            const patientUsers = users.filter(u => u.role === 'Patient');
+            const foundUser = patientUsers.find(u => areFacesSimilar(capturedEmbedding, u.faceEmbedding)) || null;
 
             if (foundUser) {
                 setPatient(foundUser);
-                // In a real app, you would fetch medical records for the found user.
-                // For now, we'll use the hardcoded records if they exist, or an empty array.
-                const recordsCollection = collection(db, 'medicalRecords');
-                const recordsQuery = query(recordsCollection, where('patientId', '==', foundUser.id));
-                const recordsSnapshot = await getDocs(recordsQuery);
-                const patientRecords = recordsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as MedicalRecord[];
+                const patientRecords = medicalRecords.filter(r => r.patientId === foundUser.id);
                 setRecords(patientRecords);
                 setIsDialogOpen(true);
             } else {
@@ -141,12 +124,12 @@ export default function EmergencyPage() {
         <CardContent className="space-y-4">
              <div className="relative aspect-video w-full overflow-hidden rounded-lg border-2 border-dashed border-destructive bg-muted">
                 <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
-                { !hasCameraPermission && (
-                  <div className="absolute inset-0 flex h-full w-full flex-col items-center justify-center text-muted-foreground bg-background/80">
-                      <Video className="h-16 w-16" />
-                      <p className="mt-2 text-sm">Webcam feed inactive</p>
-                  </div>
-                )}
+                <div className="absolute inset-0 flex h-full w-full flex-col items-center justify-center bg-background/80"
+                    style={{ display: hasCameraPermission ? 'none' : 'flex' }}
+                >
+                    <Video className="h-16 w-16 text-muted-foreground" />
+                    <p className="mt-2 text-sm">Webcam feed inactive</p>
+                </div>
             </div>
              { !hasCameraPermission && (
               <Alert variant="destructive">

@@ -44,16 +44,20 @@ const navItems = [
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(currentUser);
+  const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!currentUser) {
-      router.push('/');
-    } else {
-      setUser(currentUser);
-      setIsLoading(false);
-    }
+    // Because data is now local, we can just read it.
+    // A slight delay is simulated to show loading state.
+    setTimeout(() => {
+        if (!currentUser) {
+            router.push('/');
+        } else {
+            setUser(currentUser);
+        }
+        setIsLoading(false);
+    }, 500)
   }, [router]);
 
   const handleLogout = () => {

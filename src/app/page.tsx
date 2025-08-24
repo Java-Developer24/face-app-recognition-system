@@ -6,18 +6,13 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { db } from '@/lib/firebase';
-import { collection, getDocs, query, where } from 'firebase/firestore';
-import { setCurrentUser } from '@/lib/data';
+import { setCurrentUser, users } from '@/lib/data';
 
 // A simple similarity function for demo purposes.
 // In a real app, this would be a sophisticated face recognition model.
 const areFacesSimilar = (embedding1: string, embedding2: string) => {
     // This is a placeholder. A real implementation would compare embeddings.
-    // For this demo, we'll consider them similar if they are not empty.
-    // This is NOT secure and for demonstration only.
     if (embedding1 && embedding2) {
-      // A slightly more complex check for demo to differentiate scans a little.
       // This is still not a real similarity check.
       return embedding1.substring(0, 100) === embedding2.substring(0, 100);
     }
@@ -71,21 +66,10 @@ export default function LoginPage() {
     const capturedEmbedding = canvas.toDataURL('image/png');
 
     try {
-      const usersCollection = collection(db, 'users');
-      const querySnapshot = await getDocs(usersCollection);
-      
-      let foundUser = null;
-      
-      for (const doc of querySnapshot.docs) {
-          const userData = doc.data();
-          if (areFacesSimilar(capturedEmbedding, userData.faceEmbedding)) {
-              foundUser = { id: doc.id, ...userData };
-              break;
-          }
-      }
+      const foundUser = users.find(user => areFacesSimilar(capturedEmbedding, user.faceEmbedding));
 
       if (foundUser) {
-        setCurrentUser(foundUser as any);
+        setCurrentUser(foundUser);
         toast({
           title: `Welcome back, ${foundUser.name}!`,
           description: 'You have been successfully logged in.',
@@ -124,12 +108,12 @@ export default function LoginPage() {
         <CardContent className="space-y-6">
           <div className="relative aspect-video w-full overflow-hidden rounded-lg border-2 border-dashed bg-muted">
             <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
-            { !hasCameraPermission && (
-                <div className="absolute inset-0 flex h-full w-full flex-col items-center justify-center text-muted-foreground bg-background/80">
-                <Video className="h-16 w-16" />
-                <p className="mt-2 text-sm">Webcam feed inactive</p>
-                </div>
-            )}
+            <div className="absolute inset-0 flex h-full w-full flex-col items-center justify-center bg-background/80"
+              style={{ display: hasCameraPermission ? 'none' : 'flex' }}
+            >
+              <Video className="h-16 w-16 text-muted-foreground" />
+              <p className="mt-2 text-sm text-muted-foreground">Webcam feed inactive</p>
+            </div>
           </div>
           <Button onClick={handleLogin} className="w-full" size="lg" disabled={isLoggingIn || !hasCameraPermission}>
             {isLoggingIn ? <Loader2 className="animate-spin" /> : 'Scan Face to Log In'}

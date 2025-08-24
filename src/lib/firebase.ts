@@ -1,7 +1,7 @@
 // src/lib/firebase.ts
+// This file is kept for reference but is no longer used for data storage
+// as per user request to use local files.
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
   "projectId": "facecheck-hospital",
@@ -15,7 +15,9 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const db = getFirestore(app);
-const auth = getAuth(app);
 
-export { app, db, auth };
+// Since we are not using Firestore or Auth, we can remove them.
+// const db = getFirestore(app);
+// const auth = getAuth(app);
+
+export { app };

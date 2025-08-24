@@ -7,6 +7,7 @@ export interface User {
   role: 'Patient' | 'Doctor' | 'Nurse' | 'Admin';
   faceEmbedding: string; // data URI placeholder
   avatarUrl: string;
+  email?: string;
 }
 
 export interface Appointment {

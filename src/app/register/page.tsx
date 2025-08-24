@@ -6,12 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Stethoscope, UserPlus, Video, CheckCircle, AlertCircle } from 'lucide-react';
+import { UserPlus, Video, CheckCircle, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { db } from '@/lib/firebase';
-import { collection, addDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { addUser } from '@/lib/data';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -75,13 +74,14 @@ export default function RegisterPage() {
     }
     setIsSubmitting(true);
     try {
-      await addDoc(collection(db, "users"), {
+      addUser({
         name,
         email,
         age: Number(age),
-        gender,
+        gender: gender || 'Other',
         role,
         faceEmbedding,
+        contact: email,
         avatarUrl: `https://placehold.co/100x100/64B5F6/FFFFFF.png?text=${name.charAt(0)}`
       });
 
@@ -158,14 +158,14 @@ export default function RegisterPage() {
               </div>
             <div className="space-y-2">
               <Label>Face Scan</Label>
-              <div className="relative aspect-video w-full overflow-hidden rounded-lg border-2 border-dashed bg-muted">
+               <div className="relative aspect-video w-full overflow-hidden rounded-lg border-2 border-dashed bg-muted">
                  <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
-                 { !hasCameraPermission && (
-                    <div className="absolute inset-0 flex h-full w-full flex-col items-center justify-center text-muted-foreground bg-background/80">
-                        <Video className="h-16 w-16" />
-                        <p className="mt-2 text-sm">Enable camera access</p>
-                    </div>
-                 )}
+                  <div className="absolute inset-0 flex h-full w-full flex-col items-center justify-center bg-background/80"
+                    style={{ display: hasCameraPermission ? 'none' : 'flex' }}
+                  >
+                    <Video className="h-16 w-16 text-muted-foreground" />
+                    <p className="mt-2 text-sm text-muted-foreground">Enable camera access</p>
+                  </div>
               </div>
               { !hasCameraPermission && (
                 <Alert variant="destructive">
